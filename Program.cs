@@ -20,6 +20,26 @@ SetTargetFPS(60);
 
 while (!WindowShouldClose())
 {
+  Update();
+
+  BeginDrawing();
+  Draw();
+  EndDrawing();
+}
+
+CloseWindow();
+
+void Draw()
+{
+  ClearBackground(Color.RayWhite);
+  DrawRectangleV(square.position, square.size, square.color);
+  DrawFPS(screenWidth - MeasureText("XX FPS", 20), 0);
+  DrawText($"{square.position}", screenWidth / 2, screenHeight / 2, 20, Color.Blue);
+  if (!square.alive) DrawText("Dead", 0, 0, 40, Color.Red);
+}
+
+void Update()
+{
   if (square.alive)
   {
 
@@ -42,15 +62,4 @@ while (!WindowShouldClose())
       square.alive = true;
     }
   }
-
-  BeginDrawing();
-  ClearBackground(Color.RayWhite);
-  DrawRectangleV(square.position, square.size, square.color);
-  DrawFPS(screenWidth - MeasureText("XX FPS", 20), 0);
-  DrawText($"{square.position}", screenWidth / 2, screenHeight / 2, 20, Color.Blue);
-  if (!square.alive) DrawText("Dead", 0, 0, 40, Color.Red);
-  EndDrawing();
 }
-
-CloseWindow();
-
