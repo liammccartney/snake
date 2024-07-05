@@ -51,8 +51,8 @@ internal class Program
 
           if (snake.IsColliding(food.position))
           {
-            snake.Eat();
             food.eaten = true;
+            snake.Eat();
           }
         }
       }
@@ -61,7 +61,7 @@ internal class Program
         if (IsKeyPressed(KeyboardKey.Enter))
         {
           snake = new Snake(right);
-          food.eaten = false;
+          food = new Food();
           food.Place(snake.body);
           gameOver = false;
         }
@@ -80,12 +80,13 @@ internal class Program
       {
         DrawText($"Game Over", 12 * cellSize, 12 * cellSize, 20, Color.DarkPurple);
       }
-      DrawText($"Score: {snake.body.Count - 1}", 0, 20, 20, Color.DarkPurple);
-      // DrawFPS(0, 0);
-      // DrawText($"Facing: {direction}", 0, 20, 20, Color.DarkPurple);
-      // DrawText($"Head: {snake.body.FirstOrDefault()}", 0, 40, 20, Color.Black);
-      // DrawText($"Food: {food.position}", 0, 60, 20, Color.Green);
-      // DrawText($"Colliding: {snake.IsColliding(food.position)}", 0, 80, 20, Color.Pink);
+      var scoreMessage = $"Score: {snake.body.Count - 1}";
+      DrawText(scoreMessage, cellCount * cellSize - 5 - MeasureText(scoreMessage, 20), 20, 20, Color.DarkPurple);
+      DrawFPS(0, 0);
+      DrawText($"Facing: {direction}", 0, 20, 20, Color.DarkPurple);
+      DrawText($"Head: {snake.body.FirstOrDefault()}", 0, 40, 20, Color.Black);
+      DrawText($"Food: {food.position}", 0, 60, 20, Color.Green);
+      DrawText($"Colliding: {snake.IsColliding(food.position) || snake.IsSelfColliding() || IsOutOfBounds(snake)}", 0, 80, 20, Color.Pink);
       EndDrawing();
       frame++;
     }
@@ -142,7 +143,11 @@ internal class Program
     {
       foreach (var bitPosition in body)
       {
-        DrawRectangleV(bitPosition * cellSize, new Vector2(cellSize), Color.Black);
+        var r = new Rectangle(bitPosition * cellSize, new Vector2(cellSize));
+        DrawRectangleRounded(r, 0.2f, 6, Color.Black);
+
+        
+        // DrawRectangleV(bitPosition * cellSize, new Vector2(cellSize), Color.Black);
       }
     }
 
