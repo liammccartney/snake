@@ -2,55 +2,181 @@
 using Raylib_cs;
 using static Raylib_cs.Raylib;
 
-const int size = 32;
-const int screenWidth = 800;
-const int screenHeight = 450;
-const float speed = size / 5;
-
-var square = (
-      position: new Vector2(screenWidth / 2, screenHeight / 2),
-      size: new Vector2(size, size),
-      speed: new Vector2(speed, 0),
-      color: Color.Black,
-      alive: true
-      );
-
-InitWindow(screenWidth, screenHeight, "Snake!");
-SetTargetFPS(60);
-
-while (!WindowShouldClose())
+internal class Program
 {
-  if (square.alive)
+  // -- DIMENSIONS --
+  static int cellSize = 30;
+  static int cellCount = 25;
+  static int screenWidth = cellSize * cellCount;
+  static int screenHeight = cellSize * cellCount;
+
+  // -- MOVEMENT --
+  static Vector2 right = new Vector2(1, 0);
+  static Vector2 left = new Vector2(-1, 0);
+  static Vector2 up = new Vector2(0, -1);
+  static Vector2 down = new Vector2(0, 1);
+
+  static bool gameOver = false;
+
+  private static void Main(string[] args)
   {
+    var food = new Food();
+    var snake = new Snake(right);
 
-    if (IsKeyDown(KeyboardKey.Right)) square.speed = new Vector2(speed, 0);
-    if (IsKeyDown(KeyboardKey.Left)) square.speed = new Vector2(-speed, 0);
-    if (IsKeyDown(KeyboardKey.Up)) square.speed = new Vector2(0, -speed);
-    if (IsKeyDown(KeyboardKey.Down)) square.speed = new Vector2(0, speed);
 
-    square.position += square.speed;
+    InitWindow(screenWidth, screenHeight, "Snake!");
+    SetTargetFPS(60);
 
-    if (square.position.X < 0 || square.position.Y < 0 || square.position.X > screenWidth || square.position.Y > screenHeight) square.alive = false;
-  }
-  else
-  {
-    square.speed = new Vector2(0);
-    if (IsKeyPressed(KeyboardKey.Enter))
+    var direction = right;
+    var frame = 1;
+    while (!WindowShouldClose())
     {
-      square.position = new Vector2(0);
-      square.speed = new Vector2(speed, 0);
-      square.alive = true;
+      if (!gameOver)
+      {
+        // -- Handle Input --
+        if (IsKeyPressed(KeyboardKey.Right) && (direction == up || direction == down)) direction = right;
+        if (IsKeyPressed(KeyboardKey.Left) && (direction == up || direction == down)) direction = left;
+        if (IsKeyPressed(KeyboardKey.Up) && (direction == right || direction == left)) direction = up;
+        if (IsKeyPressed(KeyboardKey.Down) && (direction == right || direction == left)) direction = down;
+
+        // -- Update Model --
+        if (frame % 5 == 0)
+        {
+          snake.Update(direction);
+          food.Place(snake.body);
+          if (snake.IsSelfColliding() || IsOutOfBounds(snake))
+          {
+            gameOver = true;
+          }
+
+          if (snake.IsColliding(food.position))
+          {
+            food.eaten = true;
+            snake.Eat();
+          }
+        }
+      }
+      else
+      {
+        if (IsKeyPressed(KeyboardKey.Enter))
+        {
+          snake = new Snake(right);
+          food = new Food();
+          food.Place(snake.body);
+          gameOver = false;
+        }
+      }
+
+
+      // -- Draw Frame --
+      BeginDrawing();
+      ClearBackground(Color.White);
+      if (!gameOver)
+      {
+        snake.Draw();
+        food.Draw();
+      }
+      else
+      {
+        DrawText($"Game Over", 12 * cellSize, 12 * cellSize, 20, Color.DarkPurple);
+      }
+      var scoreMessage = $"Score: {snake.body.Count - 1}";
+      DrawText(scoreMessage, cellCount * cellSize - 5 - MeasureText(scoreMessage, 20), 20, 20, Color.DarkPurple);
+      DrawFPS(0, 0);
+      DrawText($"Facing: {direction}", 0, 20, 20, Color.DarkPurple);
+      DrawText($"Head: {snake.body.FirstOrDefault()}", 0, 40, 20, Color.Black);
+      DrawText($"Food: {food.position}", 0, 60, 20, Color.Green);
+      DrawText($"Colliding: {snake.IsColliding(food.position) || snake.IsSelfColliding() || IsOutOfBounds(snake)}", 0, 80, 20, Color.Pink);
+      EndDrawing();
+      frame++;
+    }
+
+    CloseWindow();
+
+    bool IsOutOfBounds(Snake snake)
+    {
+      return snake.head.X < 0 || snake.head.Y < 0 || snake.head.X > cellCount - 1 || snake.head.Y > cellCount - 1;
+    }
+
+  }
+
+
+  public class Food
+  {
+    public Vector2 position { get; set; }
+    public bool eaten = true;
+
+    public void Draw()
+    {
+      DrawRectangleV(position * cellSize, new Vector2(cellSize), Color.Green);
+    }
+
+    public void Place(List<Vector2> blackList)
+    {
+      if (eaten)
+      {
+        position = new Vector2(GetRandomValue(0, cellCount - 1), GetRandomValue(0, cellCount - 1));
+        while (blackList.Contains(position))
+        {
+          position = new Vector2(GetRandomValue(0, cellCount - 1), GetRandomValue(0, cellCount - 1));
+        }
+        eaten = false;
+      }
+    }
+
+  }
+
+  public class Snake
+  {
+    public Vector2 direction = new();
+    public List<Vector2> body;
+    public Vector2 head => body.FirstOrDefault();
+    public float size;
+
+    public Snake(Vector2 startingDirection)
+    {
+      direction = startingDirection;
+      body = new List<Vector2> { new Vector2(6, 6) };
+    }
+
+    public void Draw()
+    {
+      foreach (var bitPosition in body)
+      {
+        var r = new Rectangle(bitPosition * cellSize, new Vector2(cellSize));
+        DrawRectangleRounded(r, 0.2f, 6, Color.Black);
+
+        
+        // DrawRectangleV(bitPosition * cellSize, new Vector2(cellSize), Color.Black);
+      }
+    }
+
+    public void Update(Vector2 newDirection)
+    {
+      var nextPosition = head + newDirection;
+      direction = newDirection;
+      body.RemoveAt(body.Count - 1);
+      body.Insert(0, nextPosition);
+    }
+
+    public bool IsSelfColliding()
+    {
+      if (body.Count() is 1)
+      {
+        return false;
+      }
+
+      return body.Skip(1).Any(pos => pos == head);
+    }
+
+    public bool IsColliding(Vector2 collider)
+    {
+      return head == collider;
+    }
+
+    public void Eat()
+    {
+      body.Insert(0, head + direction);
     }
   }
-
-  BeginDrawing();
-  ClearBackground(Color.RayWhite);
-  DrawRectangleV(square.position, square.size, square.color);
-  DrawFPS(screenWidth - MeasureText("XX FPS", 20), 0);
-  DrawText($"{square.position}", screenWidth / 2, screenHeight / 2, 20, Color.Blue);
-  if (!square.alive) DrawText("Dead", 0, 0, 40, Color.Red);
-  EndDrawing();
 }
-
-CloseWindow();
-
